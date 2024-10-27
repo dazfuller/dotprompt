@@ -96,3 +96,21 @@ func TestGenerateUserPrompt(t *testing.T) {
 		t.Errorf("Expected user prompt to be 'Explain the impact of bluetooth on how we engage with technology as a society', got '%s'", userPrompt)
 	}
 }
+
+func TestGenerateSystemPrompt(t *testing.T) {
+	promptFile, err := NewPromptFileFromFile("prompts/example.prompt")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+
+	systemPrompt, err := promptFile.GetSystemPrompt(map[string]interface{}{})
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+
+	if systemPrompt != "You are a helpful research assistant who will provide descriptive responses for a given topic and how it impacts society" {
+		t.Errorf("Expected system prompt to be 'You are a helpful research assistant who will provide descriptive responses for a given topic and how it impacts society', got '%s'", systemPrompt)
+	}
+}
