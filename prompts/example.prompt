@@ -1,0 +1,27 @@
+name: Example
+config:
+  outputFormat: text
+  temperature: 0.7
+  maxTokens: 500
+  input:
+    parameters:
+      topic: string
+      style?: string
+    default:
+      topic: social media
+prompts:
+  system: |-
+    You are a helpful research assistant who will provide descriptive responses for a given topic and how it impacts society
+  user: |-
+    Explain the impact of {{ topic }} on how we engage with technology as a society
+    {% if style -%}
+    Can you answer in the style of a {{ style }}
+    {% endif -%}
+fewShots:
+  - user: What is Bluetooth
+    response: Bluetooth is a short-range wireless technology standard that is used for exchanging data between fixed and mobile devices over short distances and building personal area networks.
+  - user: How does machine learning differ from traditional programming?
+    response: Machine learning allows algorithms to learn from data and improve over time without being explicitly programmed.
+  - user: Can you provide an example of AI in everyday life?
+    response: AI is used in virtual assistants like Siri and Alexa, which understand and respond to voice commands.
+
