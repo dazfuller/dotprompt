@@ -12,13 +12,17 @@ import (
 	"time"
 )
 
-var validDataTypes = []string{"string", "number", "bool", "datetime", "object"}
+var (
+	validDataTypes      = []string{"string", "number", "bool", "datetime", "object"}
+	invalidCharsRegex   = regexp.MustCompile(`([^A-Za-z0-9 \-\r\n]*)`)
+	multipleSpacesRegex = regexp.MustCompile(`[\s\r\n]+`)
+)
 
 type PromptError struct {
 	Message string
 }
 
-func (e *PromptError) Error() string {
+func (e PromptError) Error() string {
 	return e.Message
 }
 
@@ -31,20 +35,9 @@ func (of *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
 	case "json":
 		*of = Json
 	default:
-		return value.Decode(&of)
+		return fmt.Errorf("invalid output format: %s", value.Value)
 	}
 	return nil
-}
-
-func (of *OutputFormat) String() string {
-	switch *of {
-	case Text:
-		return "text"
-	case Json:
-		return "json"
-	default:
-		return "unknown"
-	}
 }
 
 const (
@@ -174,11 +167,23 @@ func (pf *PromptFile) generatePrompt(template string, values map[string]interfac
 func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) (map[string]interface{}, error) {
 	bindings := make(map[string]interface{})
 
+	if values == nil {
+		values = make(map[string]interface{})
+	}
+
 	for key := range pf.Config.Input.Parameters {
-		if value, ok := values[key]; ok {
-			bindings[key] = value
-		} else if defaultValue, ok := pf.Config.Input.Default[key]; ok {
-			bindings[key] = defaultValue
+		keyWithoutOptionalSuffix := strings.TrimSuffix(key, "?")
+		parameterType := strings.ToLower(pf.Config.Input.Parameters[key])
+		if value, ok := values[keyWithoutOptionalSuffix]; ok {
+			if stringerValue, ok := value.(fmt.Stringer); ok && parameterType == "object" {
+				bindings[keyWithoutOptionalSuffix] = fmt.Sprintf("%s", stringerValue.String())
+			} else if parameterType == "object" {
+				bindings[keyWithoutOptionalSuffix] = fmt.Sprintf("%+v", value)
+			} else {
+				bindings[keyWithoutOptionalSuffix] = value
+			}
+		} else if defaultValue, ok := pf.Config.Input.Default[keyWithoutOptionalSuffix]; ok {
+			bindings[keyWithoutOptionalSuffix] = defaultValue
 		} else if !strings.HasSuffix(key, "?") {
 			return nil, &PromptError{
 				Message: fmt.Sprintf("no value provided for parameter %s", key),
@@ -197,7 +202,7 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 			}
 			break
 		case "number":
-			if _, ok := value.(float64); !ok {
+			if !isNumeric(value) {
 				return nil, &PromptError{
 					Message: fmt.Sprintf("parameter %s is not a number", key),
 				}
@@ -217,12 +222,6 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 				}
 			}
 			break
-		case "object":
-			if _, ok := value.(fmt.Stringer); !ok {
-				return nil, &PromptError{
-					Message: fmt.Sprintf("parameter %s does not implement the fmt.Stringer interface", key),
-				}
-			}
 		}
 	}
 
@@ -230,11 +229,20 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 }
 
 func cleanName(name string) string {
-	invalidCharsRegex := regexp.MustCompile(`([^A-Za-z0-9 \-\r\n]*)`)
-	multipleSpacesRegex := regexp.MustCompile(`[\s\r\n]+`)
-
 	strippedName := invalidCharsRegex.ReplaceAllString(name, "")
 	trimmedName := strings.Trim(multipleSpacesRegex.ReplaceAllString(strippedName, "-"), "-")
 
 	return strings.ToLower(trimmedName)
+}
+
+func isNumeric(value interface{}) bool {
+	switch value.(type) {
+	case int, int8, int16, int32, int64:
+		return true
+	//case uint, uint8, uint16, uint32, uint64:
+	//	return true
+	case float32, float64:
+		return true
+	}
+	return false
 }
