@@ -18,16 +18,21 @@ var (
 	multipleSpacesRegex = regexp.MustCompile(`[\s\r\n]+`)
 )
 
+// PromptError represents an error related to prompt processing.
 type PromptError struct {
 	Message string
 }
 
+// Error returns the error message associated with the PromptError.
 func (e PromptError) Error() string {
 	return e.Message
 }
 
+// OutputFormat represents the format of output, such as text or JSON.
 type OutputFormat int
 
+// UnmarshalYAML unmarshals a YAML node into an OutputFormat value, supporting "text" and "json".
+// Returns an error if format is invalid.
 func (of *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
 	switch strings.ToLower(value.Value) {
 	case "text":
@@ -41,10 +46,15 @@ func (of *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
 }
 
 const (
+
+	// Text represents the plain text output format.
 	Text OutputFormat = iota
+
+	// Json represents the JSON output format.
 	Json
 )
 
+// PromptFile represents the structure of a file containing a prompt configuration and multiple associated prompts.
 type PromptFile struct {
 	Name     string              `yaml:"name"`
 	Config   PromptConfig        `yaml:"config"`
@@ -52,6 +62,8 @@ type PromptFile struct {
 	FewShots []FewShotPromptPair `yaml:"fewShots"`
 }
 
+// PromptConfig represents the configuration options for a prompt, including temperature, max tokens, output
+// format, and input schema.
 type PromptConfig struct {
 	Temperature  *float32     `yaml:"temperature"`
 	MaxTokens    *int         `yaml:"maxTokens"`
@@ -59,21 +71,26 @@ type PromptConfig struct {
 	Input        InputSchema  `yaml:"input"`
 }
 
+// InputSchema represents the schema for input parameters and their default values.
 type InputSchema struct {
 	Parameters map[string]string      `yaml:"parameters"`
 	Default    map[string]interface{} `yaml:"default"`
 }
 
+// Prompts represents a set of system and user prompts.
 type Prompts struct {
 	System string `yaml:"system"`
 	User   string `yaml:"user"`
 }
 
+// FewShotPromptPair represents a pair of user prompt and the corresponding response.
 type FewShotPromptPair struct {
 	User     string `yaml:"user"`
 	Response string `yaml:"response"`
 }
 
+// NewPromptFileFromFile reads a file from the specified path, processes its content, and returns a PromptFile
+// structure or an error.
 func NewPromptFileFromFile(path string) (*PromptFile, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -87,6 +104,8 @@ func NewPromptFileFromFile(path string) (*PromptFile, error) {
 	return NewPromptFile(promptFileName, data)
 }
 
+// NewPromptFile creates a new PromptFile from the provided name and prompt data.
+// It validates the input, configures the prompt file, and returns an error if any issues are encountered.
 func NewPromptFile(name string, data []byte) (*PromptFile, error) {
 	promptFile := &PromptFile{}
 	err := yaml.Unmarshal(data, promptFile)
@@ -125,6 +144,8 @@ func NewPromptFile(name string, data []byte) (*PromptFile, error) {
 	return promptFile, nil
 }
 
+// GetSystemPrompt generates the system prompt string using the provided template values, appending
+// JSON format instructions if required.
 func (pf *PromptFile) GetSystemPrompt(values map[string]interface{}) (string, error) {
 	systemPrompt := pf.Prompts.System
 	if pf.Config.OutputFormat == Json &&
@@ -143,10 +164,15 @@ func (pf *PromptFile) GetSystemPrompt(values map[string]interface{}) (string, er
 	return pf.generatePrompt(systemPrompt, values)
 }
 
+// GetUserPrompt generates a user prompt string based on a provided template and a set of values.
+// It utilizes the 'Prompts.User' template within the PromptFile and replaces template placeholders with
+// corresponding values from the input map.
 func (pf *PromptFile) GetUserPrompt(values map[string]interface{}) (string, error) {
 	return pf.generatePrompt(pf.Prompts.User, values)
 }
 
+// generatePrompt generates a prompt by rendering a given template with provided values, utilizing the liquid
+// templating engine. Returns the rendered prompt string or an error in case of failure.
 func (pf *PromptFile) generatePrompt(template string, values map[string]interface{}) (string, error) {
 	engine := liquid.NewEngine()
 	bindings, err := pf.parseAndValidateParameters(values)
@@ -164,6 +190,7 @@ func (pf *PromptFile) generatePrompt(template string, values map[string]interfac
 	return prompt, nil
 }
 
+// parseAndValidateParameters parses input parameters against the configuration, providing default values and validation.
 func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) (map[string]interface{}, error) {
 	bindings := make(map[string]interface{})
 
@@ -171,10 +198,17 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 		values = make(map[string]interface{})
 	}
 
+	// Iterate over the prompt file parameters and extract the values from the user provided collection
 	for key := range pf.Config.Input.Parameters {
+		// Get the current key without the `optional` suffix, then get the parameters type
 		keyWithoutOptionalSuffix := strings.TrimSuffix(key, "?")
 		parameterType := strings.ToLower(pf.Config.Input.Parameters[key])
 		if value, ok := values[keyWithoutOptionalSuffix]; ok {
+			// If the parameter value is an object which implements the fmt.Stringer interface then use this
+			// to convert the object to its string representation. Otherwise, generate a string version of the
+			// object with keys.
+			//
+			// If the value is not an object, then set the binding as the value directly
 			if stringerValue, ok := value.(fmt.Stringer); ok && parameterType == "object" {
 				bindings[keyWithoutOptionalSuffix] = fmt.Sprintf("%s", stringerValue.String())
 			} else if parameterType == "object" {
@@ -183,14 +217,18 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 				bindings[keyWithoutOptionalSuffix] = value
 			}
 		} else if defaultValue, ok := pf.Config.Input.Default[keyWithoutOptionalSuffix]; ok {
+			// If no value was provided by the user, but a default exists, then use the default
 			bindings[keyWithoutOptionalSuffix] = defaultValue
 		} else if !strings.HasSuffix(key, "?") {
+			// User has not provided a value for a required parameter
 			return nil, &PromptError{
 				Message: fmt.Sprintf("no value provided for parameter %s", key),
 			}
 		}
 	}
 
+	// Iterate over all the set values and make sure that their types conform to the prompt file defined
+	// types
 	for key, value := range bindings {
 		expectedType := pf.Config.Input.Parameters[key]
 		switch expectedType {
@@ -228,6 +266,8 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 	return bindings, nil
 }
 
+// cleanName sanitizes the provided name string by removing invalid characters, replacing multiple spaces with a hyphen,
+// trimming leading and trailing hyphens, and converting the result to lowercase.
 func cleanName(name string) string {
 	strippedName := invalidCharsRegex.ReplaceAllString(name, "")
 	trimmedName := strings.Trim(multipleSpacesRegex.ReplaceAllString(strippedName, "-"), "-")
@@ -235,6 +275,7 @@ func cleanName(name string) string {
 	return strings.ToLower(trimmedName)
 }
 
+// isNumeric checks if a value is of numeric type and returns true if it is.
 func isNumeric(value interface{}) bool {
 	switch value.(type) {
 	case int, int8, int16, int32, int64:
