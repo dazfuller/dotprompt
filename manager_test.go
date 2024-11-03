@@ -130,13 +130,35 @@ func TestGetPromptFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	promptFile, ok := mgr.GetPromptFile("example")
+	promptFile, err := mgr.GetPromptFile("example")
 
-	if !ok {
-		t.Fatal("Expected example prompt file")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if promptFile.Name != "example" {
 		t.Fatal("Expected example prompt file")
+	}
+}
+
+func TestGetPromptFile_WithInvalidPromptName(t *testing.T) {
+	mgr, err := NewManager()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = mgr.GetPromptFile("does-not-exist")
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+
+	var promptError *PromptError
+	if !errors.As(err, &promptError) {
+		t.Fatal("Expected prompt error")
+	}
+
+	expectedError := "prompt file not found: does-not-exist"
+	if promptError.Error() != expectedError {
+		t.Fatalf("Expected error %s, got %s", expectedError, promptError.Error())
 	}
 }

@@ -1,5 +1,7 @@
 package dotprompt
 
+import "fmt"
+
 // Loader defines an interface for loading prompt files.
 type Loader interface {
 
@@ -14,9 +16,14 @@ type Manager struct {
 
 // GetPromptFile retrieves the prompt file with the specified name from the manager's stored prompt files.
 // Returns the PromptFile and a boolean indicating success of the retrieval.
-func (m *Manager) GetPromptFile(name string) (PromptFile, bool) {
+func (m *Manager) GetPromptFile(name string) (PromptFile, error) {
 	promptFile, ok := m.PromptFiles[name]
-	return promptFile, ok
+	if !ok {
+		return PromptFile{}, &PromptError{
+			Message: fmt.Sprintf("prompt file not found: %s", name),
+		}
+	}
+	return promptFile, nil
 }
 
 // ListPromptFileNames returns a list of all prompt file names managed by the Manager.
