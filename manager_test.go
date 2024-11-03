@@ -1,6 +1,7 @@
 package dotprompt
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -60,6 +61,51 @@ func TestNewManagerWithLoader_WithInvalidLoader(t *testing.T) {
 
 	if loader.LoadCount != 1 {
 		t.Fatal("Expected loader to be called once")
+	}
+}
+
+func TestNewManagerWithLoader_WithEmptyLoader(t *testing.T) {
+	_, err := NewManagerFromLoader(nil)
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+
+	var promptError *PromptError
+	if !errors.As(err, &promptError) {
+		t.Fatal("Expected prompt error")
+	}
+
+	expectedError := "loader cannot be nil"
+	if promptError.Error() != expectedError {
+		t.Fatalf("Expected error %s, got %s", expectedError, promptError.Error())
+	}
+}
+
+func TestNewManagerWithLoader_WithDuplicatePromptFiles(t *testing.T) {
+	loader := &MockLoader{
+		PromptFiles: []PromptFile{
+			{
+				Name: "example",
+			},
+			{
+				Name: "example",
+			},
+		},
+	}
+
+	_, err := NewManagerFromLoader(loader)
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+
+	var promptError *PromptError
+	if !errors.As(err, &promptError) {
+		t.Fatal("Expected prompt error")
+	}
+
+	expectedError := "duplicate prompt file name: example"
+	if promptError.Error() != expectedError {
+		t.Fatalf("Expected error %s, got %s", expectedError, promptError.Error())
 	}
 }
 

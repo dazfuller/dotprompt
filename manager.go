@@ -42,6 +42,12 @@ func NewManager() (*Manager, error) {
 // NewManagerFromLoader initializes and returns a Manager instance by loading prompt files using the provided Loader.
 // It returns a pointer to the Manager and an error if the loading process fails.
 func NewManagerFromLoader(loader Loader) (*Manager, error) {
+	if loader == nil {
+		return nil, &PromptError{
+			Message: "loader cannot be nil",
+		}
+	}
+
 	promptFiles, err := loader.Load()
 	if err != nil {
 		return nil, err
@@ -49,6 +55,11 @@ func NewManagerFromLoader(loader Loader) (*Manager, error) {
 
 	promptFilesMap := make(map[string]PromptFile)
 	for _, promptFile := range promptFiles {
+		if _, ok := promptFilesMap[promptFile.Name]; ok {
+			return nil, &PromptError{
+				Message: "duplicate prompt file name: " + promptFile.Name,
+			}
+		}
 		promptFilesMap[promptFile.Name] = promptFile
 	}
 
