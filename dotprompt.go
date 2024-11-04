@@ -57,6 +57,7 @@ const (
 // PromptFile represents the structure of a file containing a prompt configuration and multiple associated prompts.
 type PromptFile struct {
 	Name     string              `yaml:"name"`
+	Model    string              `yaml:"model"`
 	Config   PromptConfig        `yaml:"config"`
 	Prompts  Prompts             `yaml:"prompts"`
 	FewShots []FewShotPromptPair `yaml:"fewShots"`

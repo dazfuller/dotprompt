@@ -48,10 +48,14 @@ func TestNewPromptFile_WithBasicPrompt(t *testing.T) {
 
 	if promptFile.Name != "basic" {
 		t.Errorf("Expected name to be 'basic', got '%s'", promptFile.Name)
+	}
 
-		if promptFile.Config.OutputFormat != Text {
-			t.Errorf("Expected output format to be text, got '%s'", promptFile.Config.OutputFormat.String())
-		}
+	if promptFile.Model != "claude-3-5-sonnet-latest" {
+		t.Errorf("Expected model to be 'claude-3-5-sonnet-latest', got '%s'", promptFile.Model)
+	}
+
+	if promptFile.Config.OutputFormat != Text {
+		t.Errorf("Expected output format to be text, got '%s'", promptFile.Config.OutputFormat.String())
 	}
 
 	if *promptFile.Config.MaxTokens != 500 {
@@ -79,7 +83,7 @@ func TestNewPromptFile_WithBasicPrompt(t *testing.T) {
 	}
 }
 
-func TestNewPromptFile_WithNameFromPromptFile(t *testing.T) {
+func TestNewPromptFileFromFile_WithNameFromPromptFile(t *testing.T) {
 	promptFile, err := NewPromptFileFromFile("test-data/with-name-json.prompt")
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +110,7 @@ func TestNewPromptFile_WithNameFromPromptFile(t *testing.T) {
 	}
 }
 
-func TestNewPromptFile_WithFewShots(t *testing.T) {
+func TestNewPromptFileFromFile_WithFewShots(t *testing.T) {
 	promptFile, err := NewPromptFileFromFile("test-data/basic-fsp.prompt")
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +129,7 @@ func TestNewPromptFile_WithFewShots(t *testing.T) {
 	}
 }
 
-func TestNewPromptFile_WithInvalidCharsInName(t *testing.T) {
+func TestNewPromptFileFromFile_WithInvalidCharsInName(t *testing.T) {
 	tests := []struct {
 		name     string
 		source   string
@@ -150,7 +154,18 @@ func TestNewPromptFile_WithInvalidCharsInName(t *testing.T) {
 	}
 }
 
-func TestPromptFile_GetSystemPrompt_WithNonTemplateValues(t *testing.T) {
+func TestNewPromptFileFromFile_WithMissingModel(t *testing.T) {
+	promptFile, err := NewPromptFileFromFile("test-data/with-name.prompt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(promptFile.Model) != 0 {
+		t.Errorf("Expected model to be empty, got '%s'", promptFile.Model)
+	}
+}
+
+func TestPromptFileFromFile_GetSystemPrompt_WithNonTemplateValues(t *testing.T) {
 	tests := []struct {
 		name     string
 		source   string
@@ -189,7 +204,7 @@ func TestPromptFile_GetSystemPrompt_WithNonTemplateValues(t *testing.T) {
 	}
 }
 
-func TestPromptFile_GetSystemPrompt_WithTemplateParameters(t *testing.T) {
+func TestPromptFileFromFile_GetSystemPrompt_WithTemplateParameters(t *testing.T) {
 	promptFile, err := NewPromptFileFromFile("test-data/basic-sp-template.prompt")
 	if err != nil {
 		t.Fatal(err)

@@ -1,4 +1,5 @@
 name: Example with Name
+model: 
 config:
   outputFormat: text
   input:
