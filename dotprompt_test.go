@@ -1,10 +1,13 @@
 package dotprompt
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
+	"os"
+	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -554,5 +557,60 @@ func TestPromptFile_GetUserPrompt_WithNumericValues_ReturnsCorrectPrompt(t *test
 				t.Errorf("Expected prompt to be '%s', got '%s'", test.expected, prompt)
 			}
 		})
+	}
+}
+
+func TestPromptFile_Serialize(t *testing.T) {
+	promptFile := PromptFile{
+		Name:  "serialize-test",
+		Model: "gpt-4o",
+		Config: PromptConfig{
+			OutputFormat: Json,
+			Input: InputSchema{
+				Parameters: map[string]string{
+					"param1": "number",
+				},
+			},
+		},
+		Prompts: Prompts{
+			System: "system",
+			User:   "user",
+		},
+	}
+
+	expected := []byte("name: serialize-test\nmodel: gpt-4o\nconfig:\n  outputFormat: json\n  input:\n    parameters:\n      param1: number\nprompts:\n  system: system\n  user: user\n")
+
+	serialized, err := promptFile.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(serialized, expected) {
+		t.Errorf("Expected serialized prompt file to be '%s', got '%s'", expected, serialized)
+	}
+}
+
+func TestPromptFile_ToFile(t *testing.T) {
+	promptFile := PromptFile{
+		Model: "gpt-4o",
+		Config: PromptConfig{
+			OutputFormat: Json,
+			Input: InputSchema{
+				Parameters: map[string]string{
+					"param1": "number",
+				},
+			},
+		},
+		Prompts: Prompts{
+			System: "system",
+			User:   "user",
+		},
+	}
+
+	filePath := path.Join(os.TempDir(), "to-file-test.prompt")
+
+	err := promptFile.ToFile(filePath)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

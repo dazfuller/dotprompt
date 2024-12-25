@@ -1,6 +1,7 @@
 package dotprompt
 
 import (
+	"bytes"
 	"fmt"
 	"gopkg.in/osteele/liquid.v1"
 	"gopkg.in/yaml.v3"
@@ -45,6 +46,19 @@ func (of *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+// MarshalYAML marshals the OutputFormat into a YAML-compatible representation.
+// Returns a string representation of the format ("text" or "json") or an error if the format is invalid.
+func (of OutputFormat) MarshalYAML() (interface{}, error) {
+	switch of {
+	case Text:
+		return "text", nil
+	case Json:
+		return "json", nil
+	default:
+		return nil, fmt.Errorf("invalid output format: %v", of)
+	}
+}
+
 const (
 
 	// Text represents the plain text output format.
@@ -56,18 +70,18 @@ const (
 
 // PromptFile represents the structure of a file containing a prompt configuration and multiple associated prompts.
 type PromptFile struct {
-	Name     string              `yaml:"name"`
-	Model    string              `yaml:"model"`
+	Name     string              `yaml:"name,omitempty"`
+	Model    string              `yaml:"model,omitempty"`
 	Config   PromptConfig        `yaml:"config"`
 	Prompts  Prompts             `yaml:"prompts"`
-	FewShots []FewShotPromptPair `yaml:"fewShots"`
+	FewShots []FewShotPromptPair `yaml:"fewShots,omitempty"`
 }
 
 // PromptConfig represents the configuration options for a prompt, including temperature, max tokens, output
 // format, and input schema.
 type PromptConfig struct {
-	Temperature  *float32     `yaml:"temperature"`
-	MaxTokens    *int         `yaml:"maxTokens"`
+	Temperature  *float32     `yaml:"temperature,omitempty"`
+	MaxTokens    *int         `yaml:"maxTokens,omitempty"`
 	OutputFormat OutputFormat `yaml:"outputFormat"`
 	Input        InputSchema  `yaml:"input"`
 }
@@ -75,12 +89,12 @@ type PromptConfig struct {
 // InputSchema represents the schema for input parameters and their default values.
 type InputSchema struct {
 	Parameters map[string]string      `yaml:"parameters"`
-	Default    map[string]interface{} `yaml:"default"`
+	Default    map[string]interface{} `yaml:"default,omitempty"`
 }
 
 // Prompts represents a set of system and user prompts.
 type Prompts struct {
-	System string `yaml:"system"`
+	System string `yaml:"system,omitempty"`
 	User   string `yaml:"user"`
 }
 
@@ -265,6 +279,42 @@ func (pf *PromptFile) parseAndValidateParameters(values map[string]interface{}) 
 	}
 
 	return bindings, nil
+}
+
+// ToFile serializes the PromptFile and writes it to a specified file.
+// Returns an error if the serialization or file write operation fails.
+func (pf *PromptFile) ToFile(name string) error {
+	content, err := pf.Serialize()
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(name, content, 0600)
+	if err != nil {
+		return &PromptError{
+			Message: fmt.Sprintf("failed to write prompt file: %v", err),
+		}
+	}
+
+	return nil
+}
+
+// Serialize serializes the PromptFile into a byte slice in YAML format and returns it, or an error if serialization
+// fails.
+func (pf *PromptFile) Serialize() ([]byte, error) {
+	var b bytes.Buffer
+
+	encoder := yaml.NewEncoder(&b)
+	encoder.SetIndent(2)
+
+	err := encoder.Encode(&pf)
+	if err != nil {
+		return nil, &PromptError{
+			Message: fmt.Sprintf("failed to marshal prompt file: %v", err),
+		}
+	}
+
+	return b.Bytes(), nil
 }
 
 // cleanName sanitizes the provided name string by removing invalid characters, replacing multiple spaces with a hyphen,
