@@ -68,6 +68,17 @@ const (
 	Json
 )
 
+func (of *OutputFormat) String() string {
+	switch *of {
+	case Text:
+		return "text"
+	case Json:
+		return "json"
+	default:
+		return "unknown"
+	}
+}
+
 // PromptFile represents the structure of a file containing a prompt configuration and multiple associated prompts.
 type PromptFile struct {
 	Name     string              `yaml:"name,omitempty"`

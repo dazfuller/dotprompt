@@ -23,17 +23,6 @@ func (ts TestStruct) String() string {
 	return fmt.Sprintf("%s : %d", ts.Item1, ts.Item2)
 }
 
-func (of *OutputFormat) String() string {
-	switch *of {
-	case Text:
-		return "text"
-	case Json:
-		return "json"
-	default:
-		return "unknown"
-	}
-}
-
 func TestNewPromptFile_WithBasicPrompt(t *testing.T) {
 	promptFile, err := NewPromptFileFromFile("test-data/basic.prompt")
 	if err != nil {
