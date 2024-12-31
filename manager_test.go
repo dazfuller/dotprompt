@@ -162,3 +162,20 @@ func TestGetPromptFile_WithInvalidPromptName(t *testing.T) {
 		t.Fatalf("Expected error %s, got %s", expectedError, promptError.Error())
 	}
 }
+
+// ExampleNewManager demonstrates the process of creating a new Manager instance which loads from the default "prompts"
+// directory, and then fetching a prompt by name from the manager.
+func ExampleNewManager() {
+	mgr, err := NewManager()
+	if err != nil {
+		panic(err)
+	}
+
+	promptFile, err := mgr.GetPromptFile("example")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(promptFile.Prompts.System)
+	// Output: You are a helpful research assistant who will provide descriptive responses for a given topic and how it impacts society
+}

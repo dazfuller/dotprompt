@@ -614,3 +614,20 @@ func TestPromptFile_ToFile(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// ExampleNewPromptFileFromFile demonstrates loading a prompt file from a given path and then passing in values to
+// the template to generate the user prompt.
+func ExampleNewPromptFileFromFile() {
+	promptFile, err := NewPromptFileFromFile("test-data/basic.prompt")
+	if err != nil {
+		panic(err)
+	}
+
+	prompt, err := promptFile.GetUserPrompt(map[string]interface{}{"country": "Malta"})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(prompt)
+	// Output: I am looking at going on holiday to Malta and would like to know more about it, what can you tell me?
+}
