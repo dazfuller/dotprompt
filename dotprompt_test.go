@@ -66,7 +66,7 @@ func TestNewPromptFile_WithBasicPrompt(t *testing.T) {
 	}
 
 	if *promptFile.Config.Temperature != 0.9 {
-		t.Errorf("Expected temperature to be 0.9, got '%f'", *promptFile.Config.Temperature)
+		t.Errorf("Expected temperature to be 0.9, got '%validFs'", *promptFile.Config.Temperature)
 	}
 
 	if !reflect.DeepEqual(promptFile.Config.Input.Parameters, expectedParameters) {
@@ -105,7 +105,7 @@ func TestNewPromptFileFromFile_WithNameFromPromptFile(t *testing.T) {
 	}
 
 	if promptFile.Config.Temperature != nil {
-		t.Errorf("Expected temperature to be nil, got '%f'", *promptFile.Config.Temperature)
+		t.Errorf("Expected temperature to be nil, got '%validFs'", *promptFile.Config.Temperature)
 	}
 
 	if promptFile.Prompts.System != "" {
