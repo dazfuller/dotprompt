@@ -2,6 +2,7 @@ package dotprompt
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -93,4 +94,28 @@ func TestFileStore_Load_WithInvalidFiles(t *testing.T) {
 	if !errors.As(err, &promptError) {
 		t.Fatalf("Expected PromptError, got %T", err)
 	}
+}
+
+// ExampleNewManagerFromLoader_withFileStore demonstrates creating a Manager from a FileStore-based Loader and retrieving a prompt file.
+func ExampleNewManagerFromLoader_withFileStore() {
+	// Create a new FileStore instance using the "prompts" directory in the current working directory
+	fileStore, err := NewFileStoreFromPath("./prompts")
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a new Manager instance using the FileStore instance
+	mgr, err := NewManagerFromLoader(fileStore)
+	if err != nil {
+		panic(err)
+	}
+
+	// Fetch a prompt file by name from the manager
+	prompt, err := mgr.GetPromptFile("example")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(prompt.Prompts.System)
+	// Output: You are a helpful research assistant who will provide descriptive responses for a given topic and how it impacts society
 }
