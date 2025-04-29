@@ -353,7 +353,7 @@ func cleanName(name string) string {
 	return strings.ToLower(trimmedName)
 }
 
-// isNumeric checks if a value is of numeric type and returns true if it is.
+// isNumeric checks if a value is of a numeric type and returns true if it is.
 func isNumeric(value interface{}) bool {
 	switch value.(type) {
 	case int, int8, int16, int32, int64:
