@@ -91,16 +91,21 @@ type PromptFile struct {
 // PromptConfig represents the configuration options for a prompt, including temperature, max tokens, output
 // format, and input schema.
 type PromptConfig struct {
-	Temperature  *float32     `yaml:"temperature,omitempty"`
-	MaxTokens    *int         `yaml:"maxTokens,omitempty"`
-	OutputFormat OutputFormat `yaml:"outputFormat"`
-	Input        InputSchema  `yaml:"input"`
+	Temperature  *float32      `yaml:"temperature,omitempty"`
+	MaxTokens    *int          `yaml:"maxTokens,omitempty"`
+	OutputFormat OutputFormat  `yaml:"outputFormat"`
+	Input        InputSchema   `yaml:"input"`
+	Output       *OutputSchema `yaml:"output,omitempty"`
 }
 
 // InputSchema represents the schema for input parameters and their default values.
 type InputSchema struct {
 	Parameters map[string]string      `yaml:"parameters"`
 	Default    map[string]interface{} `yaml:"default,omitempty"`
+}
+
+type OutputSchema struct {
+	Format OutputFormat `yaml:"format"`
 }
 
 // Prompts represents a set of system and user prompts.
@@ -166,6 +171,17 @@ func NewPromptFile(name string, data []byte) (*PromptFile, error) {
 			}
 		}
 	}
+
+	// Ensure that the output configuration is set, if not, then set it to the config format to ensure backward
+	// compatibility.
+	if promptFile.Config.Output == nil {
+		promptFile.Config.Output = &OutputSchema{
+			Format: promptFile.Config.OutputFormat,
+		}
+	}
+
+	// Check that the output format is the same between the two locations it can be defined
+	promptFile.Config.OutputFormat = promptFile.Config.Output.Format
 
 	return promptFile, nil
 }

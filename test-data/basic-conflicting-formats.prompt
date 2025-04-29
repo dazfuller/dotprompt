@@ -1,0 +1,21 @@
+model: claude-3-5-sonnet-latest
+config:
+  outputFormat: text # Differs from the value provided in the output section
+  temperature: 0.9
+  maxTokens: 500
+  input:
+    parameters:
+      country: string
+      style?: string
+    default:
+      country: Malta
+  output:
+    format: json # Differs from the outputFormat specified above
+prompts:
+  system: |
+    You are a helpful AI assistant that enjoys making penguin related puns. You should work as many into your response as possible
+  user: |
+    I am looking at going on holiday to {{ country }} and would like to know more about it, what can you tell me?
+    {% if style -%}
+    Can you answer in the style of a {{ style }}
+    {% endif -%}

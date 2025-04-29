@@ -50,6 +50,10 @@ func TestNewPromptFile_WithBasicPrompt(t *testing.T) {
 		t.Errorf("Expected output format to be text, got '%s'", promptFile.Config.OutputFormat.String())
 	}
 
+	if promptFile.Config.Output.Format != Text {
+		t.Errorf("Expected output format to be text, got '%s'", promptFile.Config.Output.Format.String())
+	}
+
 	if *promptFile.Config.MaxTokens != 500 {
 		t.Errorf("Expected max tokens to be 500, got '%d'", *promptFile.Config.MaxTokens)
 	}
@@ -118,6 +122,26 @@ func TestNewPromptFileFromFile_WithFewShots(t *testing.T) {
 
 	if promptFile.FewShots[2].Response != "AI is used in virtual assistants like Siri and Alexa, which understand and respond to voice commands." {
 		t.Errorf("Expected third few shot response to be 'AI is used in virtual assistants like Siri and Alexa, which understand and respond to voice commands.', got '%s'", promptFile.FewShots[2].Response)
+	}
+}
+
+// Validates that if both output format sections are used, then the `output` section is preferred
+func TestNewPromptFileFromFile_WithConflictingOutputFormats(t *testing.T) {
+	promptFile, err := NewPromptFileFromFile("test-data/basic-conflicting-formats.prompt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if promptFile.Config.Output == nil {
+		t.Fatal("Expected the prompt file to contain an output section within the config section, but none found")
+	}
+
+	if promptFile.Config.Output.Format != Json {
+		t.Errorf("Expected the output format to be JSON, got '%s'", promptFile.Config.Output.Format.String())
+	}
+
+	if promptFile.Config.OutputFormat != promptFile.Config.Output.Format {
+		t.Errorf("Expected the config.outputFormat value to match the config.output.format value, but got '%s'", promptFile.Config.OutputFormat.String())
 	}
 }
 
